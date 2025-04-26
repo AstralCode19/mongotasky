@@ -1,37 +1,43 @@
 import './App.css';
 import Task from './components/Task';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AddTaskForm from './components/Form';
 import { v4 as uuidv4 } from 'uuid';
+import {getTasks, addTask, deleteTask, updateTask} from "./api/tasky-api";
 
 function App() {
 
-  const [ taskState, setTaskState ] = useState({
-    tasks: [
-      {id:1, title:"Dishes", description:"Empty dishwasher", deadline:"Today", priority:"Low", done: false},
-      {id:2, title:"Laundry", description:"Fold laundry and put away", deadline:"Tomorrow", priority:"Medium", done: false},
-      {id:3, title:"Tidy up", deadline:"Today", priority:"High", done: false}
-    ]
-  })
+  const [ taskState, setTaskState ] = useState({tasks: []});
+    useEffect(() => {
+      getTasks().then(tasks => {
+        setTaskState({tasks: tasks});
+      });
+    }, []);	
   
   const doneHandler = (taskIndex) => {
     const tasks = [...taskState.tasks];
+
     tasks[taskIndex].done = !tasks[taskIndex].done;
+
+    updateTask(tasks[taskIndex]);
     setTaskState({tasks});
-    console.log(`${taskIndex} ${tasks[taskIndex].done}`);
   }
 
   const deleteHandler = (taskIndex) => {
     const tasks = [...taskState.tasks];
+    const id=tasks[taskIndex]._id;
+
     tasks.splice(taskIndex, 1);
+    
+    deleteTask(id);
     setTaskState({tasks});
-  } 
+  }  
 
   const [ formState, setFormState ] = useState({
     title: "",
     description: "",
     deadline: "",
-    priority: ""
+    priority: "Low"
   });
 
   const formChangeHandler = (event) => {
@@ -56,15 +62,14 @@ function App() {
     setFormState(form);
   }
 
-  const formSubmitHandler = (event) => {
+  const formSubmitHandler = async (event) => {
     event.preventDefault();
 
-    const tasks = [...taskState.tasks];
+    const tasks = taskState.tasks?[...taskState.tasks]:[];
     const form = {...formState};
+    const newTask = await addTask(form);
 
-    form.id = uuidv4();
-    
-    tasks.push(form);
+    tasks.push(newTask);
     setTaskState({tasks});
   }
 
@@ -79,7 +84,7 @@ function App() {
         title={task.title}
         description={task.description}
         deadline={task.deadline}
-        key={task.id}
+        key={task._id}        
         priority={task.priority}
         done={task.done}
         markDone={() => doneHandler(index)}
